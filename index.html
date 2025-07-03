@@ -1,0 +1,924 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>CNN Learning Lab</title>
+    <script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs@3.11.0"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs-vis@1.5.1"></script>
+    <style>
+        :root {
+            --primary: #4361ee;
+            --secondary: #3f37c9;
+            --success: #4cc9f0;
+            --dark: #1d3557;
+            --light: #f1faee;
+            --danger: #e63946;
+        }
+        
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        }
+        
+        body {
+            background: linear-gradient(135deg, #1d2b64, #f8cdda);
+            color: var(--light);
+            min-height: 100vh;
+            padding: 20px;
+        }
+        
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+        
+        header {
+            text-align: center;
+            margin-bottom: 30px;
+            padding: 20px;
+            background: rgba(29, 53, 87, 0.7);
+            border-radius: 15px;
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.2);
+            backdrop-filter: blur(4px);
+            border: 1px solid rgba(255, 255, 255, 0.18);
+        }
+        
+        h1 {
+            font-size: 2.5rem;
+            margin-bottom: 10px;
+            background: linear-gradient(90deg, #4cc9f0, #4361ee);
+            -webkit-background-clip: text;
+            background-clip: text;
+            color: transparent;
+        }
+        
+        .subtitle {
+            font-size: 1.1rem;
+            opacity: 0.9;
+            max-width: 700px;
+            margin: 0 auto;
+            line-height: 1.6;
+        }
+        
+        .content {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 25px;
+        }
+        
+        @media (max-width: 900px) {
+            .content {
+                grid-template-columns: 1fr;
+            }
+        }
+        
+        .panel {
+            background: rgba(29, 53, 87, 0.75);
+            border-radius: 15px;
+            padding: 25px;
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.2);
+            backdrop-filter: blur(4px);
+            border: 1px solid rgba(255, 255, 255, 0.18);
+        }
+        
+        .panel-title {
+            font-size: 1.4rem;
+            margin-bottom: 20px;
+            padding-bottom: 10px;
+            border-bottom: 2px solid var(--success);
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        
+        .webcam-container {
+            position: relative;
+            width: 100%;
+            aspect-ratio: 4/3;
+            border-radius: 12px;
+            overflow: hidden;
+            margin-bottom: 20px;
+            background: #0a192f;
+            box-shadow: 0 10px 20px rgba(0, 0, 0, 0.3);
+        }
+        
+        #webcam {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+            transform: scaleX(-1);
+        }
+        
+        .controls {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 15px;
+            margin-bottom: 25px;
+        }
+        
+        .btn {
+            padding: 14px 20px;
+            border: none;
+            border-radius: 8px;
+            font-size: 1rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+        }
+        
+        .btn-primary {
+            background: var(--primary);
+            color: white;
+        }
+        
+        .btn-primary:hover {
+            background: var(--secondary);
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(67, 97, 238, 0.4);
+        }
+        
+        .btn-secondary {
+            background: var(--success);
+            color: var(--dark);
+        }
+        
+        .btn-secondary:hover {
+            background: #3ac0e8;
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(76, 201, 240, 0.4);
+        }
+        
+        .btn-danger {
+            background: var(--danger);
+            color: white;
+        }
+        
+        .btn-danger:hover {
+            background: #d6303f;
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(230, 57, 70, 0.4);
+        }
+        
+        .status-bar {
+            background: rgba(0, 0, 0, 0.3);
+            padding: 15px;
+            border-radius: 8px;
+            margin-bottom: 25px;
+            font-size: 1.1rem;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        
+        .samples-container {
+            display: flex;
+            gap: 15px;
+            margin-bottom: 25px;
+        }
+        
+        .sample-counter {
+            flex: 1;
+            background: rgba(0, 0, 0, 0.3);
+            padding: 15px;
+            border-radius: 8px;
+            text-align: center;
+        }
+        
+        .counter-value {
+            font-size: 1.8rem;
+            font-weight: bold;
+            margin-top: 5px;
+            color: var(--success);
+        }
+        
+        .result-container {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 15px;
+            margin-top: 20px;
+        }
+        
+        .result-box {
+            background: rgba(0, 0, 0, 0.3);
+            border-radius: 12px;
+            padding: 15px;
+            min-height: 200px;
+        }
+        
+        .result-title {
+            font-size: 1.1rem;
+            margin-bottom: 10px;
+            color: var(--success);
+        }
+        
+        #predictionCanvas, #activationCanvas {
+            width: 100%;
+            height: 180px;
+            background: #0a192f;
+            border-radius: 8px;
+        }
+        
+        .prediction-label {
+            text-align: center;
+            font-size: 1.3rem;
+            font-weight: bold;
+            margin-top: 10px;
+            height: 30px;
+        }
+        
+        .instructions {
+            line-height: 1.7;
+        }
+        
+        .instructions li {
+            margin-bottom: 12px;
+            padding-left: 10px;
+            border-left: 3px solid var(--success);
+        }
+        
+        .progress-bar {
+            height: 8px;
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 4px;
+            overflow: hidden;
+            margin-top: 10px;
+        }
+        
+        .progress {
+            height: 100%;
+            background: var(--success);
+            width: 0%;
+            transition: width 0.3s ease;
+        }
+        
+        .feature-maps-container {
+            margin-top: 20px;
+        }
+        
+        .feature-map {
+            display: inline-block;
+            width: 60px;
+            height: 60px;
+            margin: 5px;
+            border-radius: 5px;
+            overflow: hidden;
+            background: #0a192f;
+        }
+        
+        .feature-map canvas {
+            width: 100%;
+            height: 100%;
+        }
+        
+        .loading {
+            display: none;
+            text-align: center;
+            padding: 20px;
+        }
+        
+        .spinner {
+            width: 40px;
+            height: 40px;
+            border: 4px solid rgba(255, 255, 255, 0.3);
+            border-radius: 50%;
+            border-top-color: var(--success);
+            animation: spin 1s linear infinite;
+            margin: 0 auto 15px;
+        }
+        
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+        
+        .footer {
+            text-align: center;
+            margin-top: 30px;
+            padding: 20px;
+            font-size: 0.9rem;
+            opacity: 0.7;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>🧠 CNN Learning Lab</h1>
+            <p class="subtitle">Teach a convolutional neural network to recognize objects using your webcam. Capture samples, train the model, and see real-time predictions with feature map visualizations.</p>
+        </header>
+        
+        <div class="content">
+            <div class="panel">
+                <h2 class="panel-title">
+                    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"></path>
+                        <circle cx="12" cy="13" r="4"></circle>
+                    </svg>
+                    Camera & Controls
+                </h2>
+                
+                <div class="webcam-container">
+                    <video id="webcam" autoplay playsinline></video>
+                </div>
+                
+                <div class="controls">
+                    <button id="captureObj1" class="btn btn-primary">
+                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <circle cx="12" cy="12" r="10"></circle>
+                            <circle cx="12" cy="12" r="3"></circle>
+                        </svg>
+                        Capture Object 1
+                    </button>
+                    <button id="captureObj2" class="btn btn-primary">
+                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <circle cx="12" cy="12" r="10"></circle>
+                            <circle cx="12" cy="12" r="3"></circle>
+                        </svg>
+                        Capture Object 2
+                    </button>
+                    <button id="trainBtn" class="btn btn-secondary">
+                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path>
+                            <circle cx="9" cy="7" r="4"></circle>
+                            <path d="M23 21v-2a4 4 0 0 0-3-3.87"></path>
+                            <path d="M16 3.13a4 4 0 0 1 0 7.75"></path>
+                        </svg>
+                        Train Model
+                    </button>
+                    <button id="resetBtn" class="btn btn-danger">
+                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <polyline points="1 4 1 10 7 10"></polyline>
+                            <path d="M3.51 15a9 9 0 1 0 2.13-9.36L1 10"></path>
+                        </svg>
+                        Reset
+                    </button>
+                </div>
+                
+                <div class="status-bar">
+                    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <circle cx="12" cy="12" r="10"></circle>
+                        <line x1="12" y1="16" x2="12" y2="12"></line>
+                        <line x1="12" y1="8" x2="12" y2="8"></line>
+                    </svg>
+                    <span id="statusText">Ready to capture samples</span>
+                </div>
+                
+                <div class="samples-container">
+                    <div class="sample-counter">
+                        <div>Object 1 Samples</div>
+                        <div id="counterObj1" class="counter-value">0</div>
+                    </div>
+                    <div class="sample-counter">
+                        <div>Object 2 Samples</div>
+                        <div id="counterObj2" class="counter-value">0</div>
+                    </div>
+                </div>
+                
+                <div class="progress-bar">
+                    <div id="trainingProgress" class="progress"></div>
+                </div>
+            </div>
+            
+            <div class="panel">
+                <h2 class="panel-title">
+                    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"></path>
+                        <polyline points="3.27 6.96 12 12.01 20.73 6.96"></polyline>
+                        <line x1="12" y1="22.08" x2="12" y2="12"></line>
+                    </svg>
+                    Results & Information
+                </h2>
+                
+                <div class="result-container">
+                    <div class="result-box">
+                        <div class="result-title">Classification Result</div>
+                        <canvas id="predictionCanvas"></canvas>
+                        <div id="predictionLabel" class="prediction-label">-</div>
+                    </div>
+                    
+                    <div class="result-box">
+                        <div class="result-title">Feature Maps</div>
+                        <canvas id="activationCanvas"></canvas>
+                        <div id="featureMapLabel" class="prediction-label">Convolutional Layer</div>
+                    </div>
+                </div>
+                
+                <div class="feature-maps-container">
+                    <div class="result-title">Activation Visualizations</div>
+                    <div id="featureMapsGrid"></div>
+                </div>
+                
+                <div class="instructions">
+                    <h3>How to use:</h3>
+                    <ul>
+                        <li><strong>Capture samples:</strong> Position your objects in front of the camera and capture multiple angles</li>
+                        <li><strong>Training:</strong> Click "Train Model" to teach the CNN to recognize your objects</li>
+                        <li><strong>Classification:</strong> After training, the model will predict objects in real-time</li>
+                        <li><strong>Feature Maps:</strong> See what patterns the CNN detects in the images</li>
+                        <li><strong>Tips:</strong> Use consistent lighting, capture 10+ samples per object, show different angles</li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+        
+        <div class="loading" id="loadingIndicator">
+            <div class="spinner"></div>
+            <p>Training model... This may take a moment</p>
+        </div>
+        
+        <div class="footer">
+            <p>CNN Learning Lab | Powered by TensorFlow.js | All processing happens in your browser</p>
+        </div>
+    </div>
+
+    <script>
+        // Configuration
+        const IMG_SIZE = 100;
+        const CLASSES = ["Object 1", "Object 2"];
+        const EPOCHS = 15;
+        const BATCH_SIZE = 8;
+        const MAX_SAMPLES = 50;
+        const FEATURE_MAPS_TO_SHOW = 8;
+
+        // State management
+        let appState = {
+            class0: [],
+            class1: [],
+            model: null,
+            isTraining: false,
+            isModelTrained: false
+        };
+
+        // DOM Elements
+        const webcam = document.getElementById('webcam');
+        const captureObj1Btn = document.getElementById('captureObj1');
+        const captureObj2Btn = document.getElementById('captureObj2');
+        const trainBtn = document.getElementById('trainBtn');
+        const resetBtn = document.getElementById('resetBtn');
+        const statusText = document.getElementById('statusText');
+        const counterObj1 = document.getElementById('counterObj1');
+        const counterObj2 = document.getElementById('counterObj2');
+        const predictionCanvas = document.getElementById('predictionCanvas');
+        const activationCanvas = document.getElementById('activationCanvas');
+        const predictionLabel = document.getElementById('predictionLabel');
+        const trainingProgress = document.getElementById('trainingProgress');
+        const loadingIndicator = document.getElementById('loadingIndicator');
+        const featureMapsGrid = document.getElementById('featureMapsGrid');
+        
+        // Canvas contexts
+        const predictionCtx = predictionCanvas.getContext('2d');
+        const activationCtx = activationCanvas.getContext('2d');
+        
+        // Set canvas dimensions
+        predictionCanvas.width = predictionCanvas.offsetWidth;
+        predictionCanvas.height = predictionCanvas.offsetHeight;
+        activationCanvas.width = activationCanvas.offsetWidth;
+        activationCanvas.height = activationCanvas.offsetHeight;
+        
+        // Initialize webcam
+        async function initWebcam() {
+            try {
+                const stream = await navigator.mediaDevices.getUserMedia({ 
+                    video: { 
+                        width: { ideal: 640 }, 
+                        height: { ideal: 480 },
+                        facingMode: "environment" 
+                    } 
+                });
+                webcam.srcObject = stream;
+                
+                updateStatus("Webcam ready. Start capturing samples!");
+                return new Promise((resolve) => {
+                    webcam.onloadedmetadata = () => {
+                        resolve();
+                    };
+                });
+            } catch (err) {
+                updateStatus(`Error accessing webcam: ${err.message}`);
+                console.error("Webcam error:", err);
+            }
+        }
+        
+        // Update status text
+        function updateStatus(message) {
+            statusText.textContent = message;
+        }
+        
+        // Update sample counters
+        function updateSampleCounters() {
+            counterObj1.textContent = appState.class0.length;
+            counterObj2.textContent = appState.class1.length;
+        }
+        
+        // Capture frame for a specific class
+        function captureFrame(classId) {
+            if (appState.isTraining) {
+                updateStatus("Please wait for training to complete");
+                return;
+            }
+            
+            // Create off-screen canvas for capture
+            const canvas = document.createElement('canvas');
+            canvas.width = webcam.videoWidth;
+            canvas.height = webcam.videoHeight;
+            const ctx = canvas.getContext('2d');
+            
+            // Draw current frame
+            ctx.drawImage(webcam, 0, 0, canvas.width, canvas.height);
+            
+            // Store the image data
+            const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+            
+            if (classId === 0) {
+                appState.class0.push(imageData);
+            } else {
+                appState.class1.push(imageData);
+            }
+            
+            updateSampleCounters();
+            updateStatus(`Captured sample for ${CLASSES[classId]}! Total: ${classId === 0 ? appState.class0.length : appState.class1.length}`);
+            
+            // Visual feedback
+            flashCaptureEffect();
+        }
+        
+        // Visual feedback for capture
+        function flashCaptureEffect() {
+            const overlay = document.createElement('div');
+            overlay.style.position = 'absolute';
+            overlay.style.top = '0';
+            overlay.style.left = '0';
+            overlay.style.width = '100%';
+            overlay.style.height = '100%';
+            overlay.style.backgroundColor = 'rgba(255, 255, 255, 0.8)';
+            overlay.style.zIndex = '100';
+            overlay.style.pointerEvents = 'none';
+            overlay.style.transition = 'opacity 0.3s ease';
+            overlay.style.opacity = '1';
+            
+            document.querySelector('.webcam-container').appendChild(overlay);
+            
+            setTimeout(() => {
+                overlay.style.opacity = '0';
+                setTimeout(() => {
+                    overlay.remove();
+                }, 300);
+            }, 150);
+        }
+        
+        // Preprocess image for model input
+        function preprocessImage(imageData) {
+            return tf.tidy(() => {
+                // Convert to tensor
+                let tensor = tf.browser.fromPixels(imageData);
+                
+                // Convert to grayscale
+                tensor = tensor.mean(2).expandDims(2);
+                
+                // Resize to model input size
+                tensor = tf.image.resizeBilinear(tensor, [IMG_SIZE, IMG_SIZE]);
+                
+                // Normalize to [0, 1]
+                tensor = tensor.div(255.0);
+                
+                return tensor;
+            });
+        }
+        
+        // Build the CNN model
+        function createModel() {
+            const model = tf.sequential();
+            
+            // First convolutional layer
+            model.add(tf.layers.conv2d({
+                inputShape: [IMG_SIZE, IMG_SIZE, 1],
+                filters: 16,
+                kernelSize: 3,
+                activation: 'relu',
+                name: 'conv1'
+            }));
+            model.add(tf.layers.maxPooling2d({poolSize: 2}));
+            
+            // Second convolutional layer
+            model.add(tf.layers.conv2d({
+                filters: 32,
+                kernelSize: 3,
+                activation: 'relu',
+                name: 'conv2'
+            }));
+            model.add(tf.layers.maxPooling2d({poolSize: 2}));
+            
+            // Flatten and dense layers
+            model.add(tf.layers.flatten());
+            model.add(tf.layers.dense({units: 64, activation: 'relu'}));
+            model.add(tf.layers.dense({
+                units: CLASSES.length,
+                activation: 'softmax'
+            }));
+            
+            // Compile the model
+            model.compile({
+                optimizer: 'adam',
+                loss: 'categoricalCrossentropy',
+                metrics: ['accuracy']
+            });
+            
+            return model;
+        }
+        
+        // Train the model
+        async function trainModel() {
+            if (appState.class0.length < 2 || appState.class1.length < 2) {
+                updateStatus("Need at least 2 samples per class!");
+                return;
+            }
+            
+            appState.isTraining = true;
+            updateStatus("Preparing data for training...");
+            
+            // Show loading indicator
+            loadingIndicator.style.display = 'block';
+            
+            try {
+                // Prepare training data
+                const xs = [];
+                const ys = [];
+                
+                // Process class0 samples
+                for (const imgData of appState.class0) {
+                    const tensor = preprocessImage(imgData);
+                    xs.push(tensor);
+                    ys.push(0);
+                }
+                
+                // Process class1 samples
+                for (const imgData of appState.class1) {
+                    const tensor = preprocessImage(imgData);
+                    xs.push(tensor);
+                    ys.push(1);
+                }
+                
+                // Convert to tensors
+                const xTrain = tf.concat(xs);
+                const yTrain = tf.oneHot(tf.tensor1d(ys, 'int32'), CLASSES.length);
+                
+                // Create model
+                appState.model = createModel();
+                
+                // Train the model
+                updateStatus("Training started...");
+                
+                await appState.model.fit(xTrain, yTrain, {
+                    epochs: EPOCHS,
+                    batchSize: Math.min(BATCH_SIZE, xs.length),
+                    callbacks: {
+                        onEpochEnd: async (epoch, logs) => {
+                            const progress = ((epoch + 1) / EPOCHS) * 100;
+                            trainingProgress.style.width = `${progress}%`;
+                            updateStatus(`Epoch ${epoch + 1}/${EPOCHS} - Accuracy: ${(logs.acc * 100).toFixed(1)}%`);
+                        }
+                    }
+                });
+                
+                appState.isModelTrained = true;
+                updateStatus("Training complete! Model is ready for classification.");
+                
+                // Start classification
+                classifyFrame();
+            } catch (error) {
+                console.error("Training error:", error);
+                updateStatus(`Training failed: ${error.message}`);
+            } finally {
+                loadingIndicator.style.display = 'none';
+                appState.isTraining = false;
+            }
+        }
+        
+        // Classify the current frame
+        async function classifyFrame() {
+            if (!appState.isModelTrained || appState.isTraining) return;
+            
+            try {
+                // Create off-screen canvas for capture
+                const canvas = document.createElement('canvas');
+                canvas.width = webcam.videoWidth;
+                canvas.height = webcam.videoHeight;
+                const ctx = canvas.getContext('2d');
+                
+                // Draw current frame
+                ctx.drawImage(webcam, 0, 0, canvas.width, canvas.height);
+                const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+                
+                // Preprocess image
+                const tensor = preprocessImage(imageData);
+                
+                // Predict
+                const prediction = appState.model.predict(tensor.expandDims());
+                const values = prediction.dataSync();
+                const classIdx = values[0] > values[1] ? 0 : 1;
+                const confidence = Math.max(values[0], values[1]);
+                
+                // Display prediction
+                predictionLabel.textContent = `${CLASSES[classIdx]} (${(confidence * 100).toFixed(1)}%)`;
+                
+                // Draw on canvas
+                predictionCtx.clearRect(0, 0, predictionCanvas.width, predictionCanvas.height);
+                
+                // Draw the captured frame
+                const displayImg = new Image();
+                displayImg.onload = () => {
+                    // Draw image
+                    predictionCtx.drawImage(displayImg, 0, 0, predictionCanvas.width, predictionCanvas.height);
+                    
+                    // Draw label
+                    predictionCtx.fillStyle = 'rgba(0, 0, 0, 0.7)';
+                    predictionCtx.fillRect(0, predictionCanvas.height - 40, predictionCanvas.width, 40);
+                    
+                    predictionCtx.font = 'bold 16px Arial';
+                    predictionCtx.fillStyle = classIdx === 0 ? '#4cc9f0' : '#f72585';
+                    predictionCtx.textAlign = 'center';
+                    predictionCtx.fillText(
+                        `${CLASSES[classIdx]} (${(confidence * 100).toFixed(1)}%)`, 
+                        predictionCanvas.width / 2, 
+                        predictionCanvas.height - 15
+                    );
+                };
+                displayImg.src = canvas.toDataURL();
+                
+                // Visualize activations
+                visualizeActivations(tensor);
+            } catch (error) {
+                console.error("Classification error:", error);
+            }
+            
+            // Continue classification
+            requestAnimationFrame(classifyFrame);
+        }
+        
+        // Visualize convolutional layer activations
+        async function visualizeActivations(inputTensor) {
+            if (!appState.model) return;
+            
+            try {
+                // Get the first convolutional layer
+                const convLayer = appState.model.getLayer('conv1');
+                const activationModel = tf.model({
+                    inputs: appState.model.inputs,
+                    outputs: convLayer.output
+                });
+                
+                // Get activations
+                const activations = activationModel.predict(inputTensor.expandDims());
+                
+                // Get the activations data
+                const data = await activations.data();
+                const [height, width, depth] = activations.shape.slice(1);
+                
+                // Clear previous feature maps
+                featureMapsGrid.innerHTML = '';
+                
+                // Create a grid of feature maps
+                for (let i = 0; i < Math.min(FEATURE_MAPS_TO_SHOW, depth); i++) {
+                    const featureMap = document.createElement('div');
+                    featureMap.className = 'feature-map';
+                    
+                    const featureCanvas = document.createElement('canvas');
+                    featureCanvas.width = width;
+                    featureCanvas.height = height;
+                    
+                    const featureCtx = featureCanvas.getContext('2d');
+                    const imageData = featureCtx.createImageData(width, height);
+                    
+                    // Extract this feature map
+                    for (let y = 0; y < height; y++) {
+                        for (let x = 0; x < width; x++) {
+                            const idx = (y * width + x) * depth + i;
+                            const value = data[idx];
+                            
+                            // Convert to grayscale
+                            const intensity = Math.min(255, Math.max(0, Math.floor(value * 255)));
+                            
+                            // Set RGBA values
+                            const pixelIdx = (y * width + x) * 4;
+                            imageData.data[pixelIdx] = intensity;        // R
+                            imageData.data[pixelIdx + 1] = intensity;    // G
+                            imageData.data[pixelIdx + 2] = intensity;    // B
+                            imageData.data[pixelIdx + 3] = 255;          // A
+                        }
+                    }
+                    
+                    featureCtx.putImageData(imageData, 0, 0);
+                    featureMap.appendChild(featureCanvas);
+                    featureMapsGrid.appendChild(featureMap);
+                }
+                
+                // Draw main activation visualization
+                activationCtx.clearRect(0, 0, activationCanvas.width, activationCanvas.height);
+                
+                // Create a tiled view of all feature maps
+                const cols = 4;
+                const rows = Math.ceil(depth / cols);
+                const tileWidth = activationCanvas.width / cols;
+                const tileHeight = activationCanvas.height / rows;
+                
+                for (let i = 0; i < depth; i++) {
+                    const col = i % cols;
+                    const row = Math.floor(i / cols);
+                    
+                    // Create a canvas for this feature map
+                    const fmCanvas = document.createElement('canvas');
+                    fmCanvas.width = width;
+                    fmCanvas.height = height;
+                    const fmCtx = fmCanvas.getContext('2d');
+                    
+                    const imageData = fmCtx.createImageData(width, height);
+                    
+                    // Extract this feature map
+                    for (let y = 0; y < height; y++) {
+                        for (let x = 0; x < width; x++) {
+                            const idx = (y * width + x) * depth + i;
+                            const value = data[idx];
+                            
+                            // Convert to grayscale
+                            const intensity = Math.min(255, Math.max(0, Math.floor(value * 255)));
+                            
+                            // Set RGBA values
+                            const pixelIdx = (y * width + x) * 4;
+                            imageData.data[pixelIdx] = intensity;        // R
+                            imageData.data[pixelIdx + 1] = intensity;    // G
+                            imageData.data[pixelIdx + 2] = intensity;    // B
+                            imageData.data[pixelIdx + 3] = 255;          // A
+                        }
+                    }
+                    
+                    fmCtx.putImageData(imageData, 0, 0);
+                    
+                    // Draw to main activation canvas
+                    activationCtx.drawImage(
+                        fmCanvas, 
+                        col * tileWidth, 
+                        row * tileHeight,
+                        tileWidth,
+                        tileHeight
+                    );
+                }
+                
+                // Clean up
+                tf.dispose([activations, activationModel]);
+            } catch (error) {
+                console.error("Activation visualization error:", error);
+            }
+        }
+        
+        // Reset the application
+        function resetApp() {
+            appState = {
+                class0: [],
+                class1: [],
+                model: null,
+                isTraining: false,
+                isModelTrained: false
+            };
+            
+            updateSampleCounters();
+            updateStatus("Application reset. Ready to capture samples!");
+            predictionLabel.textContent = "-";
+            trainingProgress.style.width = "0%";
+            
+            // Clear canvases
+            predictionCtx.clearRect(0, 0, predictionCanvas.width, predictionCanvas.height);
+            activationCtx.clearRect(0, 0, activationCanvas.width, activationCanvas.height);
+            featureMapsGrid.innerHTML = '';
+        }
+        
+        // Initialize the application
+        async function initApp() {
+            updateStatus("Initializing webcam...");
+            
+            try {
+                await initWebcam();
+                
+                // Set up event listeners
+                captureObj1Btn.addEventListener('click', () => captureFrame(0));
+                captureObj2Btn.addEventListener('click', () => captureFrame(1));
+                trainBtn.addEventListener('click', trainModel);
+                resetBtn.addEventListener('click', resetApp);
+                
+                updateStatus("Ready to capture samples!");
+            } catch (error) {
+                updateStatus(`Initialization error: ${error.message}`);
+            }
+        }
+        
+        // Start the application
+        window.addEventListener('DOMContentLoaded', initApp);
+    </script>
+</body>
+</html>
