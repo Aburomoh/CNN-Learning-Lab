@@ -11,7 +11,7 @@ pinned: false
 
 # 🧠 CNN Learning Lab
 
-![Demo GIF](https://huggingface.co/spaces/MohannadPhD/CNN-Learning-Lab/raw/main/demo.gif) *(Replace with actual demo GIF link)*
+![Demo GIF](https://placehold.co/600x400?text=Demo+GIF)
 
 **An interactive educational tool that lets you teach a convolutional neural network (CNN) to recognize objects using your webcam!**
 
@@ -38,7 +38,7 @@ CNN Learning Lab is an interactive educational application that allows you to:
 
 ## 🖥️ User Interface
 
-![Interface Diagram](https://huggingface.co/spaces/your-username/your-space-name/raw/main/interface.png) *(Replace with actual interface screenshot)*
+![Interface Diagram](https://placehold.co/600x400?text=Interface+Screenshot)
 
 ### Main Components:
 1. **Webcam Feed**: Real-time camera view
@@ -82,3 +82,22 @@ graph LR
     E --> F[Flatten]
     F --> G[Dense 64 units]
     G --> H[Output 2 units softmax]
+```
+
+### Training Parameters
+- **Epochs**: 15
+- **Batch size**: 8
+- **Optimizer**: Adam
+- **Loss**: categorical crossentropy
+
+### Running Locally
+Open `index.html` in a modern browser and allow webcam access. No server
+setup is required.
+
+### Deploying to Cloudflare Pages
+1. Create a new **Pages** project in your Cloudflare dashboard.
+2. Connect this repository and leave the build settings empty (it's a static site).
+3. Start the deployment and your app will be live once the build finishes.
+
+## License
+This project is released under the CC0 license. See [LICENSE](LICENSE) for details.
